@@ -1,0 +1,5 @@
+/*.bin
+/output/*.bin
+/output/*.json
+/dbfiles/*.db
+/Temp/
