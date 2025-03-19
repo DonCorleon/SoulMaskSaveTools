@@ -29,23 +29,28 @@ class ObjectProperty:
             content_size = binary_read.read_uint32()  # contentSize
             binary_read.read_bytes(len(self.padding))
             logger.debug(f'content_size:{content_size} : called from offset:{binary_read.offset}')
+            end_pos = binary_read.offset + content_size
             self.object_type = binary_read.read_bytes(1)
             logger.debug(f'object_type:{self.object_type.hex()}')
 
+            logger.critical(f'{text_colours["Blue"]}ObjectProperty name:{self.name}, type:{object_types[self.object_type]} content_size:{content_size}, position:{binary_read.offset}')
         # Set it to an array byte if array flag is set
         else:
             self.object_type = b'\x00'
+            logger.critical(f'{text_colours["Blue"]}ObjectProperty name:{self.name}, type:{object_types[self.object_type]} in Array')
+
+
 
         #object_data_start = binary_read.offset - 1
 
         if self.object_type in [b'\x00']:
             self.object_type = 'Array'
             content_count = binary_read.read_uint32()
-            logger.error(f'content_count:{content_count}')
+            logger.debug(f'content_count:{content_count}')
             array_data = []
             for i in range(content_count):
                 array_object_type = binary_read.read_bytes(1)
-                logger.error(f'ObjectType Array with type:{array_object_type} @ {binary_read.offset}')
+                logger.debug(f'ObjectType Array with type:{array_object_type} @ {binary_read.offset}')
                 if array_object_type in [b'\x01']:
                     self.value = 'Skipped object'
 
@@ -87,18 +92,20 @@ class ObjectProperty:
             logger.error(f'Unknown object type with byte:{self.object_type} @ position:{binary_read.offset}')
             raise Exception(f'Unknown object type with byte:{self.object_type} @ position:{binary_read.offset}')
 
-        logger.critical(self.value)
+        logger.debug(self.value)
+
+
 
     def NameType(self, binary_read):
         value = binary_read.read_string()
         return value
 
     def ComponentType(self, binary_read):
-        logger.error(f'Starting ComponentType @ {binary_read.offset}')
+        #logger.error(f'Starting ComponentType @ {binary_read.offset}')
         name = binary_read.read_string()
-        logger.error(f'name:{name}')
+        logger.debug(f'name:{name}')
         script = binary_read.read_string()
-        logger.error(f'script:{script}')
+        logger.debug(f'script:{script}')
 
 
         value = []

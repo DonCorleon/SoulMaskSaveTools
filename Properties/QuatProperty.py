@@ -11,8 +11,7 @@ class QuatProperty:
         z = binary_read.read_float32()
         w = binary_read.read_float32()
         self.value = {'x':x, 'y':y, 'z':z, 'w':w}
-        logger.warning(f'{binary_read.offset}:QuatProperty:{self.name}, type:{self.type}, value:{self.value}')
-        logger.warning(binary_read.peek(30))
+        logger.debug(f'{binary_read.offset}:QuatProperty:{self.name}, type:{self.type}, value:{self.value}')
 
     def __repr__(self):
         return str(self.value)

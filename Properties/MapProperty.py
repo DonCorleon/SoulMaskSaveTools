@@ -24,16 +24,22 @@ class MapProperty:
 
         self.value_type = binary_read.read_string()
         binary_read.read_bytes(1)
+        data_end_position = binary_read.offset + binary_read.offset
         self.value = []
-        pos = binary_read.offset
         binary_read.read_bytes(len(MapProperty.padding))
         content_count = binary_read.read_uint32()
-        logger.warning(f'MapProperty content_count:{content_count}')
+        logger.critical(f'\x1b[18;32mMapProperty name:{self.name}, key_type:{self.key_type}, value_type:{self.value_type} content_count:{content_count}, content_size:{self.content_size}, position:{binary_read.offset}')
 
 
-        uuid = binary_read.read_uuid()
-        for i in range(content_count):
-            logger.info(f'itteration:{i} New Map Object')
+
+        while binary_read.offset < data_end_position:
+            Guid = binary_read.read_uuid()
+            output = []
+            next_property = None
+            while not isinstance(next_property, NoneProperty):
+                next_property = binary_read.read_property()
+                output.append(next_property)
+            '''
             name = binary_read.read_string()
 
             type = binary_read.read_string()
@@ -52,13 +58,14 @@ class MapProperty:
                 data = ArrayProperty(name, binary_read)
             else:
                 raise Exception(f"Key Type not implemented: {type}")
+            
+            logger.debug(data)
+            '''
+            self.value.append([Guid,output])
 
-            logger.warning(data)
-            self.value.append([uuid,data])
-
-        self.value.append([name, data])
 
 
+        logger.error(f'End of MapProperty {self.name}')
         '''
             current_key = None
             current_value = None

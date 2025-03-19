@@ -296,7 +296,7 @@ class binary_read:
         logger.debug(f'{calculated_time}')
         return calculated_time
 
-    def read_property(self):
+    def read_property(self, in_array=False):
 
         if self.offset + len(FileEndProperty.bytes) == len(self.file_array_buffer):
             assumed_file_end = self.file_array_buffer[self.offset:self.offset + len(FileEndProperty.bytes)]
@@ -328,7 +328,7 @@ class binary_read:
         elif property_type == "EnumProperty":
             value = EnumProperty(property_name, self)
         elif property_type == "StructProperty":
-            value = StructProperty(property_name, self)
+            value = StructProperty(property_name, self, in_array)
         elif property_type == "ByteProperty":
             value = ByteProperty(property_name, self)
         elif property_type == "StrProperty":
@@ -342,7 +342,7 @@ class binary_read:
         elif property_type == "ArrayProperty":
             value = ArrayProperty(property_name, self)
         elif property_type == "ObjectProperty":
-            value = ObjectProperty(property_name, self)
+            value = ObjectProperty(property_name, self, in_array)
         elif property_type == "SoftObjectProperty":
             value = SoftObjectProperty(property_name, self)
         elif property_type == "MapProperty":
@@ -355,26 +355,19 @@ class binary_read:
 
     def deserialize(self, has_header=True):
         logger.debug(f'position:{self.offset} - {inspect.currentframe().f_code.co_name}')
-        output = []
-        '''
-        try:
-            header_property = HeaderProperty(self)
-        except:
-            raise Exception('Failed to read HeaderProperty due to invalid or obfuscated GVAS .sav format.\nPlease provide a path to a valid uncompressed Unreal Engine GVAS .sav file.')
-        output.append(header_property)
-        '''
         if has_header:
-            num_objects = self.read_int32()
-            logger.debug(f'New deserialization. ecapsulated objects: {num_objects}')
+            num_entries = self.read_int32()
+            logger.debug(f'New deserialization. ecapsulated objects: {num_entries}')
 
-        while not self.has_finished():
-            next_property = self.read_property()
-            output.append(next_property)
-        return output
-
-    def new_reader(self,file_array_buffer):
-        logger.warning(f'{inspect.currentframe().f_code.co_name}')
-        return binary_read(file_array_buffer)
+        deserialized_data =[]
+        for _ in range(num_entries):
+            output = []
+            next_property = None
+            while not isinstance(next_property, NoneProperty):
+                next_property = self.read_property()
+                output.append(next_property)
+            deserialized_data.append([output])
+        return deserialized_data
 
     def dump_to_disk(self, data, file_path='.'):
         filename = f'{file_path}/current_object.bin'

@@ -1,5 +1,6 @@
 from config import *
 import inspect
+
 from .NoneProperty import NoneProperty
 from .StructProperty import StructProperty
 from.ObjectProperty import ObjectProperty
@@ -28,98 +29,51 @@ class ArrayProperty:
         self.type = "ArrayProperty"
         self.name = name
 
-        content_count = binary_read.read_uint32()
-        logger.debug(f'content_count:{content_count} : called from offset:{binary_read.offset}')
-        binary_read.read_bytes(4)
+        content_size = binary_read.read_uint32()
+        logger.debug(f'content_size:{content_size} : called from offset:{binary_read.offset}')
+        binary_read.read_bytes(len(self.padding))
+
+
 
         self.subtype = binary_read.read_string()
         unknown_byte = binary_read.read_bytes(1).hex()
 
+        data_end_position = binary_read.offset + content_size
+
         logger.debug(f'Array subtype:{self.subtype}')
+
+        logger.critical(f'{text_colours["Magenta"]}ArrayProperty name:{self.name}, subtype:{self.subtype} content_size:{content_size}, end_pos:{data_end_position}, position:{binary_read.offset}')
+
+        self.value = []
 
         if self.subtype in ['ObjectProperty']:
             self.value = ObjectProperty(self.name, binary_read, in_array=True)
 
         elif self.subtype in ['StructProperty']:
-            logger.info(f'HERE')
-            content_size = binary_read.read_int32()
+            struct_content_count = binary_read.read_int32()
             self.value = []
-            prop = None
-            while not isinstance(prop, NoneProperty):
-                prop = binary_read.read_property()
-                self.value.append(prop)
-            '''
-            struct_content_count = binary_read.read_uint32()
-            logger.warning(f'struct_content_count:{struct_content_count}')
-            struct_name = binary_read.read_string()
-            logger.warning(f'struct_name:{struct_name}')
-            struct_type = binary_read.read_string()
-            logger.warning(f'struct_type:{struct_type}')
-            unknown_int = binary_read.read_int32()
-            binary_read.read_bytes(len(self.padding))
+            logger.error(f'struct_content_count:{struct_content_count}')
+            while int(binary_read.offset) < int(data_end_position):
+            #for _ in range(struct_content_count):
+                output = []
+                next_property = None
+                while not isinstance(next_property, NoneProperty):
+                    next_property = binary_read.read_property()
+                    logger.error(f'Struct Array:{len(output)}  >>  {binary_read.offset}/{data_end_position}')
+                    output.append(next_property)
 
-            self.value = []
-            substruct_name = binary_read.read_string()  # Collection name
-            binary_read.read_bytes(len(self.unknown))  # Adjust pointer after unknown bytes
-            if substruct_name in ['Guid']:
-                if struct_content_count > 1:
-                    logger.warning(f'Found more than 1 guid')
-                    self.value =[]
-                    self.value.append([binary_read.read_uuid() for _ in range(struct_content_count)])
-                else:
-                    self.value = binary_read.read_uuid()
 
-            else:
 
-                for i in range(struct_content_count):
-                    #logger.warning(f'Start Array StructProperty "{substruct_name}" : {binary_read.offset}')
-                    substruct = []
-                    while True:
-                        subname = binary_read.read_string()  # Read property type
-                        if subname[:4] == 'None':  # Stop at 'None'
-                            break
+                #next_property = binary_read.read_property()
+                #next_property = StructProperty()
+                self.value.append(output)
+                logger.warning(f'position:{binary_read.offset}/{data_end_position} for Array {self.name} ? struct_content_count:{struct_content_count}')
 
-                        if subname == 'EProficiency':
-                            binary_read.read_bytes(1)
-                            subtype = 'EProficiency'
-                            substruct.append(binary_read.read_string())
-                            continue
 
-                        subtype = binary_read.read_string()  # Read property value type
+            if binary_read.offset != data_end_position:
+                raise Exception(f'Supposed to end at {data_end_position} : Ended at {binary_read.offset}')
 
-                        if subtype == 'BoolProperty':
-                            subvalue = BoolProperty(subname, binary_read)
-                        elif subtype == 'StructProperty':
-                            subvalue = StructProperty(subname, binary_read)
-                        elif subtype == 'EnumProperty':
-                            subvalue = EnumProperty(subname, binary_read)
-                        elif subtype == 'IntProperty':
-                            subvalue = IntProperty(subname, binary_read)
-                        elif subtype == 'FloatProperty':
-                            subvalue = FloatProperty(subname, binary_read)
-                        elif subtype == 'DoubleProperty':
-                            subvalue = DoubleProperty(subname, binary_read)
-                        elif subtype == 'ByteProperty':
-                            subvalue = binary_read.read_bytes(8)
-                        elif subtype == 'TextProperty':
-                            subvalue = TextProperty(subname, binary_read)
-                        elif subtype == 'StructProperty':
-                            subvalue = StructProperty(subname, binary_read)
-                        elif subtype == 'ArrayProperty':
-                            #logger.warning(f'Internal Array found {subname}')
-                            subvalue = ArrayProperty(subname,binary_read)
-                            logger.warning(f'Internal Array finished {subname}')
-                        elif subtype == 'ObjectProperty':
-                            subvalue = ObjectProperty(subname, binary_read)
 
-                        else:
-                            logger.warning(f'Unknown Array subtype:"{self.subtype}" | {self.subtype.encode().hex()}')
-                            logger.warning(binary_read.read_string())
-                            raise Exception(f'Unknown subtype:"{self.subtype}" | {self.subtype.encode().hex()}')
-                        substruct.append({'name': subname, 'type': subtype, 'value': subvalue})
-                    logger.debug(f'Iteration: {i}, Position: {binary_read.offset}, Subname: {subname}, Subtype: {subtype}')
-                    self.value = [{substruct_name: substruct}]
-        '''
         elif self.subtype in ['IntProperty']:
             #binary_read.read_bytes(1)
             int_content_count = binary_read.read_uint32()
@@ -132,8 +86,9 @@ class ArrayProperty:
             logger.warning(f'Unknown Array subtype:"{self.subtype} | {self.subtype.hex()}"')
             raise Exception(f'Unknown subtype:"{self.subtype} | {self.subtype.hex()}"')
 
+        logger.error(f'{text_colours["Magenta"]}End of ArrayProperty {self.name}')
 
-        logger.info(f'Array Complete:{self.value}')
+        logger.debug(f'Array Complete:{self.value}')
 
 
     def __repr__(self):
@@ -248,4 +203,76 @@ class ArrayProperty:
             logger.critical(f'Position:{binary_read.offset}, {self.name}, {self.type}, {self.subtype}, {pos_start}:{binary_read.offset}, {content_size}:{binary_read.offset-pos_start}')
 
         logger.critical(f'ArrayProperty:{self.name}, type:{self.type}, subtype:{self.subtype}, generictype:{self.generic_type}, value:{self.value}')
+        '''
+'''
+            struct_content_count = binary_read.read_uint32()
+            logger.warning(f'struct_content_count:{struct_content_count}')
+            struct_name = binary_read.read_string()
+            logger.warning(f'struct_name:{struct_name}')
+            struct_type = binary_read.read_string()
+            logger.warning(f'struct_type:{struct_type}')
+            unknown_int = binary_read.read_int32()
+            binary_read.read_bytes(len(self.padding))
+
+            self.value = []
+            substruct_name = binary_read.read_string()  # Collection name
+            binary_read.read_bytes(len(self.unknown))  # Adjust pointer after unknown bytes
+            if substruct_name in ['Guid']:
+                if struct_content_count > 1:
+                    logger.warning(f'Found more than 1 guid')
+                    self.value =[]
+                    self.value.append([binary_read.read_uuid() for _ in range(struct_content_count)])
+                else:
+                    self.value = binary_read.read_uuid()
+
+            else:
+
+                for i in range(struct_content_count):
+                    #logger.warning(f'Start Array StructProperty "{substruct_name}" : {binary_read.offset}')
+                    substruct = []
+                    while True:
+                        subname = binary_read.read_string()  # Read property type
+                        if subname[:4] == 'None':  # Stop at 'None'
+                            break
+
+                        if subname == 'EProficiency':
+                            binary_read.read_bytes(1)
+                            subtype = 'EProficiency'
+                            substruct.append(binary_read.read_string())
+                            continue
+
+                        subtype = binary_read.read_string()  # Read property value type
+
+                        if subtype == 'BoolProperty':
+                            subvalue = BoolProperty(subname, binary_read)
+                        elif subtype == 'StructProperty':
+                            subvalue = StructProperty(subname, binary_read)
+                        elif subtype == 'EnumProperty':
+                            subvalue = EnumProperty(subname, binary_read)
+                        elif subtype == 'IntProperty':
+                            subvalue = IntProperty(subname, binary_read)
+                        elif subtype == 'FloatProperty':
+                            subvalue = FloatProperty(subname, binary_read)
+                        elif subtype == 'DoubleProperty':
+                            subvalue = DoubleProperty(subname, binary_read)
+                        elif subtype == 'ByteProperty':
+                            subvalue = binary_read.read_bytes(8)
+                        elif subtype == 'TextProperty':
+                            subvalue = TextProperty(subname, binary_read)
+                        elif subtype == 'StructProperty':
+                            subvalue = StructProperty(subname, binary_read)
+                        elif subtype == 'ArrayProperty':
+                            #logger.warning(f'Internal Array found {subname}')
+                            subvalue = ArrayProperty(subname,binary_read)
+                            logger.warning(f'Internal Array finished {subname}')
+                        elif subtype == 'ObjectProperty':
+                            subvalue = ObjectProperty(subname, binary_read)
+
+                        else:
+                            logger.warning(f'Unknown Array subtype:"{self.subtype}" | {self.subtype.encode().hex()}')
+                            logger.warning(binary_read.read_string())
+                            raise Exception(f'Unknown subtype:"{self.subtype}" | {self.subtype.encode().hex()}')
+                        substruct.append({'name': subname, 'type': subtype, 'value': subvalue})
+                    logger.debug(f'Iteration: {i}, Position: {binary_read.offset}, Subname: {subname}, Subtype: {subtype}')
+                    self.value = [{substruct_name: substruct}]
         '''
