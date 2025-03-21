@@ -57,7 +57,7 @@ handler = logging.StreamHandler()
 handler.setFormatter(CustomFormatter())
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
-#logger.setLevel(logging.INFO)
+logger.setLevel(logging.INFO)
 #logger.setLevel(logging.ERROR)
 
 if __name__=='__main__':

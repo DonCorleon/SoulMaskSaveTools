@@ -29,51 +29,32 @@ class ArrayProperty:
         self.type = "ArrayProperty"
         self.name = name
 
-        content_size = binary_read.read_uint32()
-        logger.debug(f'content_size:{content_size} : called from offset:{binary_read.offset}')
+        array_content_size = binary_read.read_uint32()
+        logger.debug(f'array_content_count:{array_content_size} : called from offset:{binary_read.offset}')
         binary_read.read_bytes(len(self.padding))
 
 
-
+        array_end_position = binary_read.offset + array_content_size
         self.subtype = binary_read.read_string()
         unknown_byte = binary_read.read_bytes(1).hex()
 
-        data_end_position = binary_read.offset + content_size
-
         logger.debug(f'Array subtype:{self.subtype}')
 
-        logger.critical(f'{text_colours["Magenta"]}ArrayProperty name:{self.name}, subtype:{self.subtype} content_size:{content_size}, end_pos:{data_end_position}, position:{binary_read.offset}')
+        logger.critical(f'{text_colours["Magenta"]}ArrayProperty name:{self.name}, subtype:{self.subtype} array_content_size:{array_content_size}, position:{binary_read.offset}')
 
         self.value = []
 
         if self.subtype in ['ObjectProperty']:
-            self.value = ObjectProperty(self.name, binary_read, in_array=True)
+            while binary_read.offset < array_end_position:
+                self.value = ObjectProperty(self.name, binary_read, in_array=True)
 
         elif self.subtype in ['StructProperty']:
-            struct_content_count = binary_read.read_int32()
-            self.value = []
-            logger.error(f'struct_content_count:{struct_content_count}')
-            while int(binary_read.offset) < int(data_end_position):
-            #for _ in range(struct_content_count):
-                output = []
-                next_property = None
-                while not isinstance(next_property, NoneProperty):
-                    next_property = binary_read.read_property()
-                    logger.error(f'Struct Array:{len(output)}  >>  {binary_read.offset}/{data_end_position}')
-                    output.append(next_property)
-
-
-
-                #next_property = binary_read.read_property()
-                #next_property = StructProperty()
-                self.value.append(output)
-                logger.warning(f'position:{binary_read.offset}/{data_end_position} for Array {self.name} ? struct_content_count:{struct_content_count}')
-
-
-            if binary_read.offset != data_end_position:
-                raise Exception(f'Supposed to end at {data_end_position} : Ended at {binary_read.offset}')
-
-
+            binary_read.read_bytes(len(self.padding))
+            array_name = binary_read.read_property().name
+            values =[]
+            while binary_read.offset < array_end_position:
+                values.append(binary_read.read_property(in_array=True))
+            self.value = values
         elif self.subtype in ['IntProperty']:
             #binary_read.read_bytes(1)
             int_content_count = binary_read.read_uint32()
@@ -87,9 +68,6 @@ class ArrayProperty:
             raise Exception(f'Unknown subtype:"{self.subtype} | {self.subtype.hex()}"')
 
         logger.error(f'{text_colours["Magenta"]}End of ArrayProperty {self.name}')
-
-        logger.debug(f'Array Complete:{self.value}')
-
 
     def __repr__(self):
         return '{}, {}, {}'.format(

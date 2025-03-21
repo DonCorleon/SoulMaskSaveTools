@@ -180,11 +180,12 @@ class binary_read:
         else:
             return self.offset == self.file_size
 
-    def read_bytes(self, count):
-        logger.debug(f'{self.offset}:{self.__class__.__name__}.{inspect.currentframe().f_code.co_name} << {inspect.stack()[1].function} << {inspect.stack()[2].function}:{where_was_i_called()}')
+    def read_bytes(self, count, quiet=False):
+        if not quiet:
+            logger.debug(f'{self.offset}:{self.__class__.__name__}.{inspect.currentframe().f_code.co_name} << {inspect.stack()[1].function} << {inspect.stack()[2].function}:{where_was_i_called()}')
         result = self.file_array_buffer[self.offset:self.offset + count]
         self.offset += count
-        where_was_i_called()
+        #where_was_i_called()
         #logger.debug(f'{result}')
         return result
 
@@ -424,7 +425,7 @@ if __name__ == '__main__':
 
     # Test Files
     dbfile = './dbfiles/MyServer.db'
-    dbfile = './dbfiles/JimsServer.db'
+    #dbfile = './dbfiles/JimsServer.db'
 
     # Load the database
     logger.info(f'Begining database read')
@@ -455,6 +456,6 @@ if __name__ == '__main__':
                 serialized_data.update({i: binary_read(db_objects[i]['actor_data'])})
                 logger.error(f'Current DB Record : {i}.bin')
                 deserialized_data.update({i: serialized_data[i].deserialize()})
-
+                break
             time.sleep(0.1)
 

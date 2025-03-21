@@ -17,10 +17,10 @@ class StructProperty:
     def __init__(self, name, binary_read, in_array=False):
         logger.debug(f'{self.__class__.__name__}.{inspect.currentframe().f_code.co_name}')
         if in_array:
-            logger.warning(f'{text_colours["Lime Green"]}Struct is part of array')
+            logger.warning(f'{text_colours["Lime Green"]}{binary_read.offset}:Struct is part of array')
         self.type = "StructProperty"
         self.name = name
-        #logger.debug(binary_read.peek(20,10))
+        logger.debug(binary_read.peek(20,10))
         self.content_size = binary_read.read_uint32()
         binary_read.read_bytes(4)
 
@@ -32,17 +32,22 @@ class StructProperty:
 
         if in_array:
             self.subtype = binary_read.read_string()
+            logger.warning(f'{text_colours["Lime Green"]}{self.subtype}')
             binary_read.read_bytes(17)
             self.value = None
             if self.content_size:
                 self.value = binary_read.read_property()
 
         else:
+
             self.subtype = binary_read.read_string()
             logger.debug(f'{binary_read.offset}:self.subtype:{self.subtype}')
 
             binary_read.read_bytes(17)
             content_end_position = binary_read.offset + self.content_size
+            if self.content_size == 0:
+                self.value = None
+                return
             if self.subtype == "Guid":
                 self.value = GuidProperty(self.name, binary_read, self.content_size)
             elif self.subtype == "DateTime":
@@ -56,7 +61,7 @@ class StructProperty:
             elif self.subtype == "IntProperty":
                 self.value = IntProperty(self.name, binary_read)
             else:
-                logger.debug(f'Unknown subtype for Struct : {self.subtype} size:{self.content_size}')
+                logger.warning(f'Unknown subtype for Struct : {self.subtype} size:{self.content_size}')
                 self.value = []
                 prop = None
                 while not isinstance(prop, NoneProperty):
@@ -65,7 +70,6 @@ class StructProperty:
 
                     #binary_read.read_bytes(1)
         logger.info(f'{text_colours["Green"]}StructProperty Complete:{self.name}, type:{self.type}, subtype:{self.subtype}, value:{self.value}')
-        logger.error(f'End of StructProperty {self.name}')
 
     def __repr__(self):
         return '{}, {}, {}, {}'.format(
