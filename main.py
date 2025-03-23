@@ -261,13 +261,11 @@ class binary_read:
 
     def read_string_special(self):
         logger.debug(f'{self.offset}:{self.__class__.__name__}.{inspect.currentframe().f_code.co_name} << {inspect.stack()[1].function} << {inspect.stack()[2].function}:{where_was_i_called()}')
-        self.read_string()
-        '''
-        logger.warning(f'{inspect.currentframe().f_code.co_name}')
         length = self.read_int32()
         wide = False
         encoding = "utf-8"
         null = 1
+        logger.warning(f'length:{length}')
         if length < 0:
             length = abs(length)*2
             wide = True
@@ -278,7 +276,6 @@ class binary_read:
         self.offset += length
         logger.debug(f'{result}, {wide}')
         return result, wide
-        '''
 
     def read_boolean(self):
         logger.debug(f'{self.offset}:{self.__class__.__name__}.{inspect.currentframe().f_code.co_name} << {inspect.stack()[1].function} << {inspect.stack()[2].function}:{where_was_i_called()}')
@@ -448,7 +445,7 @@ if __name__ == '__main__':
     deserialized_data = {}
 
     for i in db_objects:
-        if i < 10:  #  38060:
+        if i > 2 and i < 10:  #  38060:
             if db_objects[i]['actor_name'] != 'GAME_SETTINGS':
                 logger.info(f'Deserializing entry ID {i}:{db_objects[i]["actor_name"]}')
                 serialized_data.update({i: binary_read(db_objects[i]['actor_data'])})

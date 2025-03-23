@@ -44,7 +44,7 @@ class ObjectProperty:
         if self.object_type in [b'\x00']:
             num_objects_in_array = binary_read.read_uint32()
 
-            logger.warning(f'Array Object : {num_objects_in_array}')
+            logger.debug(f'Array Object : {num_objects_in_array}')
 
             for i in range(num_objects_in_array):
                 object_array_type = binary_read.read_bytes(1)
@@ -71,7 +71,7 @@ class ObjectProperty:
                 else:
                     raise Exception(f'object_array_type:{object_array_type}')
 
-                logger.warning(f'iteration:{i} of {num_objects_in_array}, position:{binary_read.offset}, value:{self.value}')
+                logger.debug(f'iteration:{i} of {num_objects_in_array}, position:{binary_read.offset}, value:{self.value}')
 
         elif self.object_type in [b'\x01']:
             self.object_type = 'Actor'
