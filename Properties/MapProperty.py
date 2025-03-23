@@ -28,7 +28,7 @@ class MapProperty:
         self.value = []
         binary_read.read_bytes(len(MapProperty.padding))
         content_count = binary_read.read_uint32()
-        logger.critical(f'\x1b[38;5;82mMapProperty name:{self.name}, key_type:{self.key_type}, value_type:{self.value_type} content_count:{content_count}, content_size:{self.content_size}, position:{binary_read.offset}')
+        logger.info(f'\x1b[38;5;82mMapProperty name:{self.name}, key_type:{self.key_type}, value_type:{self.value_type} content_count:{content_count}, content_size:{self.content_size}, position:{binary_read.offset}')
 
 
 
@@ -43,7 +43,7 @@ class MapProperty:
 
 
 
-        logger.error(f'\x1b[38;5;82mEnd of MapProperty {self.name}, Position:{binary_read.offset}')
+        logger.info(f'\x1b[38;5;82mEnd of MapProperty {self.name}, Position:{binary_read.offset}, data_end_position:{data_end_position}')
         #logger.debug(f'Position:{binary_read.offset}, name:{self.name}, type:{self.type}, value length:{len(self.value)}')
 
     def __repr__(self):

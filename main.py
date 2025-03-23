@@ -114,6 +114,7 @@ class binary_read:
         self.offset = 0
         self.file_array_buffer = file_array_buffer
         self.file_size = len(file_array_buffer)
+        self.indents = 0
         logger.debug(f'Created a new binary reader with {self.file_size} bytes')
         if DATA_DUMP:
             self.dump_to_disk(file_array_buffer)
@@ -297,7 +298,7 @@ class binary_read:
         logger.debug(f'{calculated_time}')
         return calculated_time
 
-    def read_property(self, in_array=False):
+    def read_property(self):
 
         if self.offset + len(FileEndProperty.bytes) == len(self.file_array_buffer):
             assumed_file_end = self.file_array_buffer[self.offset:self.offset + len(FileEndProperty.bytes)]
@@ -329,7 +330,7 @@ class binary_read:
         elif property_type == "EnumProperty":
             value = EnumProperty(property_name, self)
         elif property_type == "StructProperty":
-            value = StructProperty(property_name, self, in_array)
+            value = StructProperty(property_name, self)
         elif property_type == "ByteProperty":
             value = ByteProperty(property_name, self)
         elif property_type == "StrProperty":
@@ -341,9 +342,11 @@ class binary_read:
         elif property_type == "SetProperty":
             value = SetProperty(property_name, self)
         elif property_type == "ArrayProperty":
+            self.indents += 1
             value = ArrayProperty(property_name, self)
+            self.indents -= 1
         elif property_type == "ObjectProperty":
-            value = ObjectProperty(property_name, self, in_array)
+            value = ObjectProperty(property_name, self)
         elif property_type == "SoftObjectProperty":
             value = SoftObjectProperty(property_name, self)
         elif property_type == "MapProperty":
@@ -351,23 +354,18 @@ class binary_read:
         else:
             logger.critical(self.peek(50))
             raise Exception(f"Unknown property type: {property_type} at position:{self.offset-len(property_type)-4}")
-
+        logger.debug(f'Inside {self.indents} arrays')
         return value
 
-    def deserialize(self, has_header=True):
+    def deserialize(self):
         logger.debug(f'position:{self.offset} - {inspect.currentframe().f_code.co_name}')
-        if has_header:
-            num_entries = self.read_int32()
-            logger.debug(f'New deserialization. ecapsulated objects: {num_entries}')
+        num_entries = self.read_int32()
+        logger.debug(f'New deserialization. ecapsulated properties: {num_entries}')
 
         deserialized_data =[]
         for _ in range(num_entries):
-            output = []
-            next_property = None
-            while not isinstance(next_property, NoneProperty):
-                next_property = self.read_property()
-                output.append(next_property)
-            deserialized_data.append([output])
+            deserialized_data.append(self.read_property())
+            self.read_bytes(4) # padding
         return deserialized_data
 
     def dump_to_disk(self, data, file_path='.'):
@@ -425,7 +423,7 @@ if __name__ == '__main__':
 
     # Test Files
     dbfile = './dbfiles/MyServer.db'
-    #dbfile = './dbfiles/JimsServer.db'
+    dbfile = './dbfiles/JimsServer.db'
 
     # Load the database
     logger.info(f'Begining database read')
@@ -450,12 +448,11 @@ if __name__ == '__main__':
     deserialized_data = {}
 
     for i in db_objects:
-        if i < 40:  #  38060:
+        if i < 10:  #  38060:
             if db_objects[i]['actor_name'] != 'GAME_SETTINGS':
                 logger.info(f'Deserializing entry ID {i}:{db_objects[i]["actor_name"]}')
                 serialized_data.update({i: binary_read(db_objects[i]['actor_data'])})
                 logger.error(f'Current DB Record : {i}.bin')
                 deserialized_data.update({i: serialized_data[i].deserialize()})
-                break
             time.sleep(0.1)
 
