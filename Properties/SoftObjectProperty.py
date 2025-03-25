@@ -7,7 +7,9 @@ class SoftObjectProperty:
     type = "SoftObjectProperty"
 
     def __init__(self, name, binary_read):
-        logger.debug(f'{self.__class__.__name__}.{inspect.currentframe().f_code.co_name}')
+        logger.debug(
+            f"{self.__class__.__name__}.{inspect.currentframe().f_code.co_name}"
+        )
         self.type = "SoftObjectProperty"
         self.name = name
         content_size = binary_read.read_uint32()  # contentSize
@@ -16,7 +18,4 @@ class SoftObjectProperty:
         binary_read.read_bytes(4)
 
     def __repr__(self):
-        return '{}, {}, {}'.format(
-            self.name,
-            self.type,
-            self.value)
+        return "{}, {}, {}".format(self.name, self.type, self.value)

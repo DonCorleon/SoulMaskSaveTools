@@ -14,7 +14,9 @@ class MapProperty:
     type = "MapProperty"
 
     def __init__(self, name, binary_read):
-        logger.debug(f'{self.__class__.__name__}.{inspect.currentframe().f_code.co_name}')
+        logger.debug(
+            f"{self.__class__.__name__}.{inspect.currentframe().f_code.co_name}"
+        )
         self.name = name
         self.type = "MapProperty"
 
@@ -28,9 +30,9 @@ class MapProperty:
         self.value = []
         binary_read.read_bytes(len(MapProperty.padding))
         content_count = binary_read.read_uint32()
-        logger.info(f'\x1b[38;5;82mMapProperty name:{self.name}, key_type:{self.key_type}, value_type:{self.value_type} content_count:{content_count}, content_size:{self.content_size}, position:{binary_read.offset}')
-
-
+        logger.info(
+            f"\x1b[38;5;82mMapProperty name:{self.name}, key_type:{self.key_type}, value_type:{self.value_type} content_count:{content_count}, content_size:{self.content_size}, position:{binary_read.offset}"
+        )
 
         while binary_read.offset < data_end_position:
             Guid = binary_read.read_uuid()
@@ -39,17 +41,14 @@ class MapProperty:
             while not isinstance(next_property, NoneProperty):
                 next_property = binary_read.read_property()
                 output.append(next_property)
-            self.value.append([Guid,output])
+            self.value.append([Guid, output])
 
-
-
-        logger.info(f'\x1b[38;5;82mEnd of MapProperty {self.name}, Position:{binary_read.offset}, data_end_position:{data_end_position}')
-        #logger.debug(f'Position:{binary_read.offset}, name:{self.name}, type:{self.type}, value length:{len(self.value)}')
+        logger.info(
+            f"\x1b[38;5;82mEnd of MapProperty {self.name}, Position:{binary_read.offset}, data_end_position:{data_end_position}"
+        )
+        # logger.debug(f'Position:{binary_read.offset}, name:{self.name}, type:{self.type}, value length:{len(self.value)}')
 
     def __repr__(self):
-        return '{}, {}, {}, {}, {}'.format(
-            self.name,
-            self.type,
-            self.key_type,
-            self.value_type,
-            self.value)
+        return "{}, {}, {}, {}, {}".format(
+            self.name, self.type, self.key_type, self.value_type, self.value
+        )

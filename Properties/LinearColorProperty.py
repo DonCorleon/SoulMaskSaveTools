@@ -9,6 +9,7 @@ class LinearColorProperty:
         g = binary_data.read_float32()
         b = binary_data.read_float32()
         a = binary_data.read_float32()
-        self.value = {'r': r, 'g': g, 'b': b, 'a': a}
+        self.value = {"r": r, "g": g, "b": b, "a": a}
+
     def __repr__(self):
-         return str(self.value)
+        return str(self.value)
