@@ -10,6 +10,72 @@ from .GuidProperty import GuidProperty
 from .NoneProperty import NoneProperty
 
 
+class _StructProperty:
+    padding = bytes([0x00] * 4)
+    unknown = bytes(
+        [
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+        ]
+    )
+    type = "StructProperty"
+
+    def __init__(self, name, binary_read, in_array=False):
+        logger.debug(
+            f"{self.__class__.__name__}.{inspect.currentframe().f_code.co_name}"
+        )
+        if in_array:
+            logger.warning(
+                f'{text_colours["Lime Green"]}{binary_read.offset}:Struct is part of array'
+            )
+        self.type = "StructProperty"
+        self.name = name
+        struct_start_position = binary_read.offset
+
+        self.content_size = binary_read.read_uint32()
+        padding = binary_read.read_bytes(4)
+
+        if self.content_size == 0:
+            struct_name = ""
+
+        logger.debug(
+            f'{text_colours["Green"]}StructProperty name:{self.name}, type:{self.type}, position:{binary_read.offset}'
+        )
+
+        data_end_position = binary_read.offset
+
+        logger.warning(f"data_end_position:{data_end_position}")
+
+        if in_array:
+            logger.warning(f"HERE struct_count: in array")
+
+            self.subname = binary_read.read_string()
+            self.subtype = binary_read.read_string()
+            logger.debug(f'{text_colours["Lime Green"]}{self.subtype}')
+
+        else:
+            self.subtype = binary_read.read_string()
+
+        logger.debug(f"{binary_read.offset}:self.subtype:{self.subtype}")
+
+        binary_read.read_bytes(17)
+
+
 class StructProperty:
     padding = bytes([0x00] * 4)
     unknown = bytes(
@@ -36,7 +102,6 @@ class StructProperty:
     type = "StructProperty"
 
     def __init__(self, name, binary_read, in_array=False):
-        STRUCT_INDENT_COUNTER["struct"] += 1
         logger.debug(
             f"{self.__class__.__name__}.{inspect.currentframe().f_code.co_name}"
         )
@@ -47,10 +112,9 @@ class StructProperty:
         self.type = "StructProperty"
         self.name = name
         struct_start_position = binary_read.offset
-        self.content_size = 0
+        self.content_size = binary_read.read_uint32()
+        logger.debug(f"content_size:{self.content_size}")
         if not in_array:
-            self.content_size = binary_read.read_uint32()
-            logger.debug(f"content_size:{self.content_size}")
             padding = binary_read.read_bytes(4)
             logger.debug(f"padding:{padding}")
 
@@ -64,10 +128,11 @@ class StructProperty:
             logger.debug(f"self.subname:{self.subname}")
             self.subtype = binary_read.read_string()
             logger.debug(f'{text_colours["Lime Green"]}{self.subtype}')
-            self.content_size = binary_read.read_uint32()
-            binary_read.read_bytes(4)
-            self.subtype = binary_read.read_string()
-            binary_read.read_bytes(17)
+            if not self.content_size:
+                binary_read.read_bytes(8)
+                self.value = binary_read.read_string()
+                binary_read.read_bytes(17)
+                return
 
         else:
             self.subtype = binary_read.read_string()
@@ -75,7 +140,6 @@ class StructProperty:
 
         if self.content_size == 0:
             self.value = None
-            STRUCT_INDENT_COUNTER["struct"] -= 1
             return
         content_end_position = binary_read.offset + self.content_size
 
@@ -116,10 +180,6 @@ class StructProperty:
             while binary_read.offset < content_end_position:
                 prop = None
                 while not isinstance(prop, NoneProperty):
-                    if binary_read.offset >= content_end_position:
-                        raise Exception(
-                            f"Overread structure {self.name} that started at {struct_start_position} and ends at {content_end_position}. {binary_read.offset}"
-                        )
                     prop = binary_read.read_property()
                     self.value.append(prop)
 
@@ -132,9 +192,8 @@ class StructProperty:
                 f"StructProperty read incorrectly. position:{binary_read.offset}, struct_start_position:{struct_start_position}, content_end_position:{content_end_position}"
             )
 
-        STRUCT_INDENT_COUNTER["struct"] -= 1
-        logger.info(
-            f'{text_colours["Green"]}StructProperty Complete:{self.name}, type:{self.type}, subtype:{self.subtype}, value:{self.value}, {STRUCT_INDENT_COUNTER}'
+        logger.debug(
+            f'{text_colours["Green"]}StructProperty Complete:{self.name}, type:{self.type}, subtype:{self.subtype}, value:{self.value}'
         )
 
     def __repr__(self):

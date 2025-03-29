@@ -61,8 +61,6 @@ logger.setLevel(logging.INFO)
 # logger.setLevel(logging.ERROR)
 # logger.setLevel(logging.CRITICAL)
 
-STRUCT_INDENT_COUNTER = {"array": 0, "object": 0, "map": 0, "struct": 0}
-
 if __name__ == "__main__":
     logger.debug("debug")
     logger.info("info")

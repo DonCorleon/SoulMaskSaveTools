@@ -21,7 +21,6 @@ class ObjectProperty:
     type = "ObjectProperty"
 
     def __init__(self, name, binary_read, in_array=False, object_list=False):
-        STRUCT_INDENT_COUNTER["object"] += 1
         self.name = name
         self.type = "ObjectProperty"
         self.in_array = in_array
@@ -37,12 +36,6 @@ class ObjectProperty:
             logger.debug(
                 f"content_size:{content_size} : called from offset:{binary_read.offset}"
             )
-            if content_size == 1:
-                binary_read.read_bytes(1)
-                self.object_type = None
-                self.value = None
-                STRUCT_INDENT_COUNTER["object"] -= 1
-                return
             end_pos = binary_read.offset + content_size
             self.object_type = binary_read.read_bytes(1)
             logger.debug(f"object_type:{self.object_type.hex()}")
@@ -54,35 +47,38 @@ class ObjectProperty:
             self.object_type = b"\x00"
 
         if self.object_type in [b"\x00"]:
-            # num_objects_in_array = binary_read.read_uint32()
+            num_objects_in_array = binary_read.read_uint32()
 
-            # logger.debug(f"Array Object : {num_objects_in_array}")
+            logger.debug(f"Array Object : {num_objects_in_array}")
 
-            # for i in range(num_objects_in_array):
-            object_array_type = binary_read.read_bytes(1)
-            if object_array_type in [b"\x01"]:
-                self.value = "Skipped object"
+            for i in range(num_objects_in_array):
+                object_array_type = binary_read.read_bytes(1)
+                if object_array_type in [b"\x01"]:
+                    self.value = "Skipped object"
 
-            elif object_array_type in [b"\x03"]:
-                self.object_list = False
-                self.value = self.ComponentType(binary_read)
+                elif object_array_type in [b"\x03"]:
+                    self.object_list = False
+                    self.value = self.ComponentType(binary_read)
 
-            elif object_array_type in [b"\x07"]:
-                self.value = "Skipped object"
+                elif object_array_type in [b"\x07"]:
+                    self.value = "Skipped object"
 
-            elif object_array_type in [b"\x09"]:
-                self.value = self.NameType(binary_read)
-                value = []
-                prop = None
+                elif object_array_type in [b"\x09"]:
+                    self.value = self.NameType(binary_read)
+                    value = []
+                    prop = None
 
-                length = self.find_extra_data_length(binary_read)
-                logger.debug(length)
-                self.extra_data = binary_read.read_bytes(length)
+                    length = self.find_extra_data_length(binary_read)
+                    logger.debug(length)
+                    self.extra_data = binary_read.read_bytes(length)
 
-                logger.debug(f"{self.value}")
-            else:
-                logger.error(binary_read.peek(10, 20))
-                raise Exception(f"object_array_type:{object_array_type}")
+                    logger.debug(f"{self.value}")
+                else:
+                    raise Exception(f"object_array_type:{object_array_type}")
+
+                logger.debug(
+                    f"iteration:{i} of {num_objects_in_array}, position:{binary_read.offset}, value:{self.value}"
+                )
 
         elif self.object_type in [b"\x01"]:
             self.object_type = "Actor"
@@ -113,9 +109,8 @@ class ObjectProperty:
                 f"Unknown object type with byte:{self.object_type} @ position:{binary_read.offset}"
             )
 
-        STRUCT_INDENT_COUNTER["object"] -= 1
-        logger.info(
-            f'{text_colours["Blue"]}Object Complete:{self.name}, {self.object_type}, {self.value}, {STRUCT_INDENT_COUNTER}'
+        logger.debug(
+            f'{text_colours["Blue"]}Object Complete:{self.name}, {self.object_type}, {self.value}'
         )
 
     def NameType(self, binary_read):

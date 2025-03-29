@@ -7,6 +7,7 @@ from Properties.DoubleProperty import DoubleProperty
 from Properties.FloatProperty import FloatProperty
 from Properties.IntProperty import IntProperty
 from Properties.Int64Property import Int64Property
+from Properties.UInt32Property import UInt32Property
 
 from Properties.EnumProperty import EnumProperty
 from Properties.NameProperty import NameProperty
@@ -29,6 +30,7 @@ from Properties.NoneProperty import NoneProperty
 # from Properties.LinearColorProperty import LinearColorProperty
 # from Properties.QuatProperty import QuatProperty
 # from Properties.RotatorProperty import RotatorProperty
+# from Properties.TransformProperty import TransformProperty
 # from Properties.VectorProperty import VectorProperty
 
 
@@ -152,6 +154,7 @@ class binary_read:
             position = self.offset
             result = self.read_bytes(len(expected_data))
             if result == expected_data:
+                logger.debug
                 return True
             else:
                 self.offset = position
@@ -162,21 +165,14 @@ class binary_read:
         except Exception as e:
             logger.error(f"{e}")
 
-    def find_next_property(self):
-        found = False
-        prop = "EOF"
-        while not found and self.offset < self.file_size:
-            current_byte = self.offset
-            if self.read_bytes(8) == b"Property":
-                self.offset = current_byte - 1
-                while self.read_bytes(1) != b"\x00":
-                    self.offset -= 2
-                found = True
-                self.offset -= 4
-                prop = self.read_string()
-            else:
-                self.offset = current_byte + 1
-        return prop
+    """
+    def peek(self, count):
+        logger.debug(f'{self.offset}:{self.__class__.__name__}.{inspect.currentframe().f_code.co_name} << {inspect.stack()[1].function} << {inspect.stack()[2].function}:{where_was_i_called()}')
+        reset = self.offset
+        result = self.read_bytes(count)
+        self.offset=reset
+        return f"{result.hex(' ', 1)} , {result}"
+    """
 
     def peek(self, count_forward, count_back=False):
         logger.debug(
@@ -353,11 +349,9 @@ class binary_read:
             calculated_time = datetime.utcfromtimestamp(
                 (ticks // 10000 - 62135596800000) / 1000.0
             )
-            calculated_time = calculated_time.strftime("%Y-%m-%d %H:%M:%S.%f")
         except:
             calculated_time = ticks
         logger.debug(f"{calculated_time}")
-
         return calculated_time
 
     def read_property(self):
@@ -387,6 +381,8 @@ class binary_read:
             value = Int64Property(property_name, self)
         elif property_type == "DoubleProperty":
             value = DoubleProperty(property_name, self)
+        elif property_type == "UInt32Property":
+            value = UInt32Property(property_name, self)
         elif property_type == "FloatProperty":
             value = FloatProperty(property_name, self)
         elif property_type == "EnumProperty":
@@ -533,16 +529,13 @@ if __name__ == "__main__":
     serialized_data = {}
     deserialized_data = {}
 
-    start_time = time.time()
     for i in db_objects:
-        if i < 4:  #  38060:
+        if i < 10:  #  38060:
             if db_objects[i]["actor_name"] != "GAME_SETTINGS":
                 logger.info(f'Deserializing entry ID {i}:{db_objects[i]["actor_name"]}')
                 serialized_data.update({i: binary_read(db_objects[i]["actor_data"])})
                 logger.error(f"Current DB Record : {i}.bin")
                 deserialized_data.update({i: serialized_data[i].deserialize()})
-
-            logger.info(
-                f"Running for {time.time() - start_time} seconds, STRUCT_INDENT_COUNTER:{STRUCT_INDENT_COUNTER}"
-            )
+                # print(deserialized_data[i])
+                # input("Enter")
             time.sleep(0.1)
