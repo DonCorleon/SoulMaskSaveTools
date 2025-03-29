@@ -3,23 +3,33 @@ import inspect
 
 
 class DoubleProperty:
-    padding = bytes([0x08] + [0x00] * 8)
-    type = "DoubleProperty"
+    padding = bytes([0x00] * 4)
 
-    def __init__(self, name, binary_read):
+    def __init__(self, name, binary_read, in_array=False):
         logger.debug(
             f"{self.__class__.__name__}.{inspect.currentframe().f_code.co_name}"
         )
         self.type = "DoubleProperty"
         self.name = name
-        self.value = []
-        length = binary_read.read_int32()
-        binary_read.read_bytes(5)
-        self.value.append(binary_read.read_double())
+        if not in_array:
+            # Length of data field
+            content_length = binary_read.read_uint32()
+            padding = binary_read.expect(self.padding)
+            # Null terminator
+            binary_read.expect(b"\x00")
+            expected_end_position = binary_read.offset + content_length
+        self.value = binary_read.read_double()
 
-        logger.debug(
-            f"DoubleProperty:{self.name}, type:{self.type}, value:{self.value}"
-        )
+        if not in_array:
+            if binary_read.offset != expected_end_position:
+                logger.error(
+                    f"DoubleProperty did not read correctly. Finished at {binary_read.offset}, expected {expected_end_position}"
+                )
+                raise Exception(
+                    f"DoubleProperty did not read correctly. Finished at {binary_read.offset}, expected {expected_end_position}"
+                )
+
+        logger.debug(f"IntProperty:{self.name}, type:{self.type}, value:{self.value}")
 
     def __repr__(self):
         return "{}, {}, {}".format(self.name, self.type, self.value)
